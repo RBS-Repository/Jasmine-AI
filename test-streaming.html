@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play.HT Streaming Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .chat-message {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            max-width: 80%;
+        }
+        .user-message {
+            background-color: #e0f2fe;
+            margin-left: auto;
+        }
+        .ai-message {
+            background-color: #f3f4f6;
+        }
+        .chat-container {
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="container mx-auto max-w-3xl bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-2xl font-bold text-center mb-6">Play.HT Streaming Test</h1>
+        
+        <div id="chat-container" class="chat-container mb-4 p-2 border rounded-lg">
+            <!-- Messages will appear here -->
+        </div>
+        
+        <div class="flex items-center">
+            <input type="text" id="prompt-input" class="flex-1 px-4 py-2 border rounded-l-lg focus:outline-none" placeholder="Enter a prompt..." />
+            <button id="send-button" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-r-lg">Send</button>
+        </div>
+        
+        <div class="mt-4">
+            <label class="block mb-2">Voice Selection:</label>
+            <select id="voice-select" class="w-full p-2 border rounded-lg">
+                <option value="s3://voice-cloning-zero-shot/d9ff78ba-d016-47f6-b0ef-dd630f59414e/female-cs/manifest.json">Female (Default)</option>
+                <option value="s3://voice-cloning-zero-shot/7c38b588-14e8-42b9-bacd-e03d1d673c3c/manifest.json">Male</option>
+            </select>
+        </div>
+        
+        <div class="mt-4">
+            <audio id="audio-player" controls class="w-full"></audio>
+        </div>
+        
+        <div class="mt-4 text-sm text-gray-500">
+            <p>Server Status: <span id="server-status">Checking...</span></p>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatContainer = document.getElementById('chat-container');
+            const promptInput = document.getElementById('prompt-input');
+            const sendButton = document.getElementById('send-button');
+            const voiceSelect = document.getElementById('voice-select');
+            const audioPlayer = document.getElementById('audio-player');
+            const serverStatus = document.getElementById('server-status');
+            
+            const serverUrl = 'http://localhost:3000';
+            
+            // Check server status
+            checkServerStatus();
+            
+            // Event listeners
+            sendButton.addEventListener('click', sendPrompt);
+            promptInput.addEventListener('keypress', e => {
+                if (e.key === 'Enter') sendPrompt();
+            });
+            
+            // Check if server is running
+            async function checkServerStatus() {
+                try {
+                    const response = await fetch(serverUrl, {
+                        method: 'GET',
+                        mode: 'no-cors'
+                    });
+                    serverStatus.textContent = 'Connected';
+                    serverStatus.classList.add('text-green-500');
+                } catch (error) {
+                    serverStatus.textContent = 'Offline - Make sure the server is running';
+                    serverStatus.classList.add('text-red-500');
+                    console.error('Server connection error:', error);
+                }
+            }
+            
+            // Send prompt to generate audio
+            async function sendPrompt() {
+                const prompt = promptInput.value.trim();
+                if (!prompt) return;
+                
+                // Clear input
+                promptInput.value = '';
+                
+                // Add user message to chat
+                addMessage(prompt, 'user');
+                
+                // Add placeholder for AI response
+                const aiMessageElement = addMessage('Generating response...', 'ai');
+                
+                try {
+                    // Get selected voice
+                    const selectedVoice = voiceSelect.value;
+                    
+                    // Call the server API
+                    const response = await fetch(`${serverUrl}/api/speak`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            prompt: prompt,
+                            voice: selectedVoice
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                    
+                    // Get the audio blob
+                    const audioBlob = await response.blob();
+                    
+                    // Create a URL for the audio blob
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    
+                    // Set the audio source
+                    audioPlayer.src = audioUrl;
+                    
+                    // Play the audio
+                    audioPlayer.play();
+                    
+                    // Update AI message with success indicator
+                    aiMessageElement.textContent = 'Audio response generated and playing.';
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    aiMessageElement.textContent = `Error: ${error.message}`;
+                    aiMessageElement.classList.add('text-red-500');
+                }
+            }
+            
+            // Add a message to the chat
+            function addMessage(text, sender) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('chat-message');
+                
+                if (sender === 'user') {
+                    messageElement.classList.add('user-message');
+                } else {
+                    messageElement.classList.add('ai-message');
+                }
+                
+                messageElement.textContent = text;
+                chatContainer.appendChild(messageElement);
+                
+                // Scroll to bottom
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                return messageElement;
+            }
+        });
+    </script>
+</body>
+</html> 

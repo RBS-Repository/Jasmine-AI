@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jasmine - Jasper's Flirty AI Companion</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            light: '#FF85A2',
+                            DEFAULT: '#FF4778',
+                            dark: '#D62E5E',
+                        },
+                        secondary: {
+                            light: '#F0F4FF',
+                            DEFAULT: '#E0E7FF',
+                            dark: '#C7D2FE',
+                        },
+                        accent: {
+                            light: '#A5B4FC',
+                            DEFAULT: '#818CF8',
+                            dark: '#6366F1',
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-soft': 'pulse-soft 3s infinite',
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'scale-in': 'scaleIn 0.2s ease-out',
+                        'bounce-in': 'bounceIn 0.5s ease-out',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        'pulse-soft': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.8 },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: 0 },
+                            '100%': { opacity: 1 },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: 0 },
+                            '100%': { transform: 'translateY(0)', opacity: 1 },
+                        },
+                        scaleIn: {
+                            '0%': { transform: 'scale(0.95)', opacity: 0 },
+                            '100%': { transform: 'scale(1)', opacity: 1 },
+                        },
+                        bounceIn: {
+                            '0%': { transform: 'scale(0.8)', opacity: 0 },
+                            '70%': { transform: 'scale(1.05)', opacity: 0.9 },
+                            '100%': { transform: 'scale(1)', opacity: 1 },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f9fafb;
+            overflow-x: hidden;
+        }
+        
+        .chat-container {
+            height: calc(100vh - 220px);
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            padding: 1.5rem;
+        }
+        
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-container::-webkit-scrollbar-thumb {
+            background-color: rgba(203, 213, 225, 0.8);
+            border-radius: 10px;
+        }
+        
+        .chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            margin: 0 1px;
+            background-color: #FF4778;
+            border-radius: 50%;
+            display: inline-block;
+            opacity: 0.6;
+        }
+        
+        .typing-indicator span:nth-child(1) {
+            animation: bounce 1s infinite 0.1s;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation: bounce 1s infinite 0.3s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation: bounce 1s infinite 0.5s;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        
+        .wave-animation {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            transform: rotate(180deg);
+        }
+        
+        .wave {
+            position: absolute;
+            height: 80px;
+            width: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23FF4778" fill-opacity="0.35" d="M0,64L40,85.3C80,107,160,149,240,149.3C320,149,400,107,480,90.7C560,75,640,85,720,112C800,139,880,181,960,165.3C1040,149,1120,75,1200,69.3C1280,64,1360,128,1400,160L1440,192L1440,320L1400,320C1360,320,1280,320,1200,320C1120,320,1040,320,960,320C880,320,800,320,720,320C640,320,560,320,480,320C400,320,320,320,240,320C160,320,80,320,40,320L0,320Z"></path></svg>');
+            background-repeat: repeat-x;
+            background-size: 1440px 80px;
+            bottom: 0;
+            animation: wave 12s linear infinite;
+            opacity: 0.8;
+        }
+        
+        .wave:nth-child(2) {
+            bottom: 10px;
+            animation: wave 10s linear reverse infinite;
+            opacity: 0.5;
+        }
+        
+        .wave:nth-child(3) {
+            bottom: 20px;
+            animation: wave 14s linear infinite;
+            opacity: 0.3;
+        }
+        
+        @keyframes wave {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 1440px; }
+        }
+        
+        .mic-active {
+            animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(255, 71, 120, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 71, 120, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 71, 120, 0); }
+        }
+        
+        .message-bubble {
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .user-message {
+            animation: slideLeft 0.3s ease-out;
+        }
+        
+        .ai-message {
+            animation: slideRight 0.3s ease-out;
+        }
+        
+        @keyframes slideLeft {
+            0% { transform: translateX(20px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideRight {
+            0% { transform: translateX(-20px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+        
+        .message-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: 12px;
+            width: 12px;
+            height: 12px;
+            transform: rotate(45deg);
+        }
+        
+        .user-message::after {
+            right: -5px;
+            background-color: #E0E7FF;
+        }
+        
+        .ai-message::after {
+            left: -5px;
+            background-color: #FFF;
+        }
+        
+        .button-hover-effect {
+            transition: all 0.3s;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .button-hover-effect::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 150%;
+            height: 150%;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transition: transform 0.5s;
+            z-index: 0;
+        }
+        
+        .button-hover-effect:hover::after {
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+        
+        .toggle-switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #E0E7FF;
+            transition: .4s;
+            border-radius: 30px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #FF4778;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(30px);
+        }
+    </style>
+    <!-- Add ResponsiveVoice library -->
+    <script src="https://code.responsivevoice.org/responsivevoice.js?key=TQgme7Df"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+        <header class="mb-6 relative">
+            <div class="flex justify-center">
+                <div class="relative animate-float">
+                    <h1 class="text-4xl font-bold text-center text-primary">
+                        Jasmine
+                    </h1>
+                    <p class="text-center text-gray-500 text-lg mt-1 font-light animate-pulse-soft">
+                        Your AI companion powered by Jasper
+                    </p>
+                    <div class="absolute -top-2 -right-2 w-8 h-8 animate-bounce-in delay-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FF4778">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="bg-white rounded-2xl shadow-xl overflow-hidden transform transition-all animate-scale-in">
+            <div class="relative">
+                <!-- Chat messages container -->
+                <div id="chat-container" class="chat-container rounded-t-2xl bg-gray-50">
+                    <div class="text-center text-gray-400 py-10 animate-pulse-soft">
+                        <i class="fas fa-comments text-5xl mb-4 text-primary-light opacity-50"></i>
+                        <p class="font-light">Start speaking or type a message below to begin the conversation</p>
+                    </div>
+                    <!-- Messages will appear here -->
+                </div>
+                
+                <!-- Wave animation at the bottom of chat container -->
+                <div class="wave-animation">
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls p-6 bg-white border-t border-gray-100">
+                <div class="flex items-center mb-4">
+                    <button id="toggle-mic" class="p-4 bg-primary hover:bg-primary-dark text-white rounded-full mr-4 focus:outline-none transition button-hover-effect shadow-lg transform hover:scale-105 mic-active">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <div class="relative flex-1">
+                        <input type="text" id="message-input" class="w-full px-5 py-3 border rounded-full bg-secondary border-none shadow-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all" placeholder="Type your message... (I-type ang iyong mensahe...)">
+                        <button id="send-button" class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-primary hover:bg-primary-dark text-white rounded-full focus:outline-none transition button-hover-effect shadow-md">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <div class="text-sm text-gray-500 font-medium" id="status-indicator">
+                        <span class="inline-flex items-center">
+                            <span class="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
+                            Ready to chat
+                        </span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center p-2 bg-secondary rounded-full shadow-sm">
+                            <label for="voice-select" class="mr-2 text-sm text-gray-600 font-medium">Voice:</label>
+                            <select id="voice-select" class="bg-white rounded-full text-sm py-1 px-3 border-none shadow-sm focus:outline-none focus:ring-1 focus:ring-primary">
+                                <option value="US English Female">US English Female</option>
+                                <option value="US English Male">US English Male</option>
+                                <option value="UK English Female">UK English Female</option>
+                                <option value="UK English Male">UK English Male</option>
+                                <option value="Australian Female">Australian Female</option>
+                                <option value="Filipino Female">Filipino Female</option>
+                                <option value="French Female">French Female</option>
+                                <option value="German Female">German Female</option>
+                            </select>
+                        </div>
+                        <button id="toggle-language" class="p-2 rounded-full bg-secondary hover:bg-secondary-dark text-primary transition transform hover:scale-105 shadow-sm" title="Toggle language">
+                            <span class="text-sm font-medium">EN/TL</span>
+                        </button>
+                        <button id="toggle-theme" class="p-2 rounded-full hover:bg-secondary transition transform hover:scale-105 shadow-sm">
+                            <i class="fas fa-moon text-gray-500"></i>
+                            <i class="fas fa-sun hidden text-yellow-500"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="mt-4 text-center text-xs text-gray-400 font-light">
+            <p>Powered by Jasper Technologies © 2023</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/speech-recognition.js"></script>
+    <script src="js/tts.js"></script>
+    <script src="js/gemini.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html> 
