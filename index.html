@@ -435,6 +435,96 @@
                 height: calc(100vh - 350px);
             }
             
+            /* Navigation for mobile */
+            nav.fixed {
+                padding: 0.5rem 0;
+            }
+            
+            #mobile-menu-toggle {
+                width: 2.5rem;
+                height: 2.5rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .mobile-nav {
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+            
+            .mobile-nav a {
+                font-size: 1.1rem;
+                padding: 0.75rem 1rem;
+                margin: 0.25rem 0;
+            }
+            
+            /* Navigation needs to fixed at the top and take less space */
+            .container.mx-auto.px-4.py-6.max-w-4xl.relative.z-10 {
+                padding-top: 1rem;
+            }
+            
+            /* Control elements for better mobile layout */
+            .controls {
+                padding: 1rem !important;
+            }
+            
+            .controls .flex-wrap {
+                justify-content: center;
+            }
+            
+            /* Make controls more touch-friendly on mobile */
+            .controls button, 
+            .controls select,
+            .controls .toggle-slider,
+            .peer:after {
+                transform: scale(1.1);
+            }
+            
+            /* Stack control elements vertically on very small screens */
+            @media (max-width: 480px) {
+                .controls .flex-wrap.justify-between {
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 0.75rem;
+                }
+                
+                .quick-actions {
+                    justify-content: center;
+                }
+                
+                /* Make status indicator full width */
+                #status-indicator {
+                    width: 100%;
+                    display: flex;
+                    justify-content: center;
+                }
+                
+                /* Increase the size of the microphone button for easier tapping */
+                #toggle-mic {
+                    padding: 1.25rem !important;
+                    transform: scale(1.1);
+                }
+                
+                /* Input field needs more space */
+                .controls .relative.flex-1 {
+                    width: 100%;
+                    margin-top: 0.5rem;
+                }
+                
+                /* Adjust the message input field for mobile */
+                #message-input {
+                    height: 3rem;
+                    font-size: 1rem;
+                }
+                
+                /* Larger send button for mobile */
+                #send-button {
+                    padding: 0.625rem !important;
+                    right: 0.5rem !important;
+                }
+            }
+            
             /* Reduce or hide decorative blurred elements on mobile */
             .filter.blur-2xl, .filter.blur-xl {
                 filter: blur(8px); /* Reduce blur intensity */
@@ -497,6 +587,16 @@
             .dark nav.fixed {
                 background-color: rgba(17, 24, 39, 0.95);
             }
+            
+            /* Mobile-friendly message bubbles */
+            .message-bubble {
+                max-width: 90% !important;
+            }
+            
+            /* Add some spacing between the microphone button and input field on mobile */
+            .controls .flex.items-center.mb-4 {
+                gap: 0.5rem;
+            }
         }
         
         @media (max-width: 640px) {
@@ -534,6 +634,34 @@
                 background-image: none;
                 background-color: var(--bg-dark);
             }
+            
+            /* Make header more compact on mobile */
+            header {
+                margin-bottom: 1rem !important;
+            }
+            
+            header h1 {
+                font-size: 2.25rem !important;
+            }
+            
+            header p {
+                font-size: 1rem !important;
+            }
+            
+            /* Adjust avatar size for mobile */
+            header .w-32.h-32 {
+                width: 5rem !important;
+                height: 5rem !important;
+            }
+            
+            header .text-6xl {
+                font-size: 2.5rem !important;
+            }
+            
+            /* Hide feature badges on very small screens */
+            header .flex.flex-wrap.justify-center.gap-2.mt-4 {
+                display: none;
+            }
         }
         
         /* Performance optimizations for mobile devices */
@@ -565,7 +693,43 @@
 <body class="bg-gray-50 text-gray-800">
     <div class="fixed inset-0 bg-gradient-to-br from-primary-light/5 via-transparent to-accent-light/5 pointer-events-none" id="background-gradient"></div>
     
-
+    <!-- Navigation Menu -->
+    <nav class="fixed top-0 left-0 w-full z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-md">
+        <div class="container mx-auto px-4 max-w-4xl">
+            <div class="flex justify-between items-center py-3">
+                <!-- Logo and Brand -->
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-md mr-2 overflow-hidden border-2 border-white dark:border-gray-700">
+                        <div class="text-lg font-display font-bold text-white">J</div>
+                    </div>
+                    <span class="font-display font-bold text-xl text-primary dark:text-primary-light">Jasmine.AI</span>
+                </div>
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="#" class="nav-link text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary-light font-medium transition-all">Home</a>
+                    <a href="#" class="nav-link text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary-light font-medium transition-all">Features</a>
+                    <a href="#" class="nav-link text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary-light font-medium transition-all">Support</a>
+                    <a href="#" class="nav-link text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary-light font-medium transition-all">About</a>
+                </div>
+                
+                <!-- Mobile Menu Toggle -->
+                <button id="mobile-menu-toggle" class="md:hidden p-2 rounded-lg bg-secondary hover:bg-secondary-dark dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 focus:outline-none transition transform hover:scale-105">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Navigation -->
+        <div id="mobile-nav" class="mobile-nav md:hidden bg-white dark:bg-gray-900 shadow-lg border-t border-gray-100 dark:border-gray-800">
+            <div class="container mx-auto px-4 py-3 space-y-3">
+                <a href="#" class="block py-2 px-4 text-gray-700 dark:text-gray-300 hover:bg-secondary dark:hover:bg-gray-800 rounded-lg transition-all">Home</a>
+                <a href="#" class="block py-2 px-4 text-gray-700 dark:text-gray-300 hover:bg-secondary dark:hover:bg-gray-800 rounded-lg transition-all">Features</a>
+                <a href="#" class="block py-2 px-4 text-gray-700 dark:text-gray-300 hover:bg-secondary dark:hover:bg-gray-800 rounded-lg transition-all">Support</a>
+                <a href="#" class="block py-2 px-4 text-gray-700 dark:text-gray-300 hover:bg-secondary dark:hover:bg-gray-800 rounded-lg transition-all">About</a>
+            </div>
+        </div>
+    </nav>
     
     <div class="container mx-auto px-4 py-6 max-w-4xl relative z-10 mt-16">
         <header class="mb-8 relative">
@@ -807,6 +971,18 @@
                             </select>
                         </div>
                         
+                        <!-- TTS Toggle Switch -->
+                        <div class="flex items-center p-2 bg-secondary dark:bg-gray-700 rounded-full shadow-sm transition-all hover:shadow-md hover:bg-secondary-dark dark:hover:bg-gray-600">
+                            <label for="tts-toggle" class="mr-2 text-sm text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">TTS:</label>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input id="tts-toggle" type="checkbox" checked value="" class="sr-only peer">
+                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-light rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                                <span class="ml-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                    <i class="fas fa-volume-high text-primary dark:text-primary-light"></i>
+                                </span>
+                            </label>
+                        </div>
+                        
                         <button id="toggle-language" class="p-2 rounded-full bg-secondary dark:bg-gray-700 hover:bg-secondary-dark hover:dark:bg-gray-600 text-primary dark:text-primary-light transition-all transform hover:scale-105 hover:-translate-y-1 shadow-sm hover:shadow-md" title="Toggle language">
                             <span class="text-sm font-medium">EN/TL</span>
                         </button>
@@ -817,7 +993,7 @@
                             <button id="toggle-theme" class="ml-1 text-sm font-medium text-gray-600 dark:text-gray-300 transition-colors">
                                 <i class="fas fa-moon text-gray-500 dark:hidden"></i>
                                 <i class="fas fa-sun hidden text-yellow-500 dark:inline"></i>
-                        </button>
+                            </button>
                         </label>
                     </div>
                 </div>

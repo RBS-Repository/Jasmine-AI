@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const voiceSelect = document.getElementById('voice-select');
     const toggleThemeButton = document.getElementById('toggle-theme');
     const toggleLanguageButton = document.getElementById('toggle-language');
+    const ttsToggle = document.getElementById('tts-toggle');
     
     let currentUserMessage = '';
     let currentTranscript = '';
@@ -21,6 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let permissionsRequested = false;
     let currentLanguage = localStorage.getItem('preferredLanguage') || 'en'; // Default to English
     let microphonePermissionGranted = localStorage.getItem('microphonePermission') === 'granted';
+    let ttsEnabled = localStorage.getItem('ttsEnabled') !== 'false'; // Default to enabled
     
     // Initialize managers
     const speechRecognitionManager = new SpeechRecognitionManager(
@@ -47,6 +49,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Error initializing AI system:', error);
         updateStatus('error', 'Error loading AI system. Using fallback mode.');
     }
+    
+    // Set initial TTS toggle state
+    ttsToggle.checked = ttsEnabled;
     
     // If we have stored permission, set it immediately
     if (microphonePermissionGranted) {
@@ -151,9 +156,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.setItem('preferredVoice', selectedVoice);
         
         // Test the selected voice immediately
-        if (window.responsiveVoice) {
+        if (window.responsiveVoice && ttsEnabled) {
             audioInitialized = true; // Mark as initialized
             responsiveVoice.speak("Voice changed to " + selectedVoice, selectedVoice);
+        }
+    });
+    
+    // TTS toggle change listener
+    ttsToggle.addEventListener('change', () => {
+        ttsEnabled = ttsToggle.checked;
+        localStorage.setItem('ttsEnabled', ttsEnabled);
+        
+        // Show a status update
+        updateStatus(
+            ttsEnabled ? 'info' : 'inactive', 
+            ttsEnabled ? 'Text-to-speech enabled' : 'Text-to-speech disabled'
+        );
+        
+        // If currently speaking, stop it when TTS is disabled
+        if (!ttsEnabled && ttsManager.isPlaying) {
+            ttsManager.stopSpeaking();
+        }
+        
+        // Test the TTS when enabled
+        if (ttsEnabled && window.responsiveVoice) {
+            audioInitialized = true; // Mark as initialized
+            responsiveVoice.speak("Text to speech is now enabled", voiceSelect.value);
         }
     });
     
@@ -164,9 +192,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     testVoiceButton.title = 'Test selected voice';
     testVoiceButton.onclick = () => {
         const currentVoice = voiceSelect.value;
-        if (window.responsiveVoice) {
+        if (window.responsiveVoice && ttsEnabled) {
             audioInitialized = true; // Mark as initialized
             responsiveVoice.speak("This is a test of the " + currentVoice + " voice.", currentVoice);
+        } else if (!ttsEnabled) {
+            updateStatus('info', 'Enable TTS to test voice');
         }
     };
     // Insert the test button after the voice dropdown
@@ -278,8 +308,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     function initializeAudio() {
         audioInitialized = true;
         // No need to initialize AudioContext with ResponsiveVoice
-        // Play welcome message after user interaction
-        ttsManager.speak(CONFIG.APP.welcomeMessage);
+        // Play welcome message after user interaction if TTS is enabled
+        if (ttsEnabled) {
+            ttsManager.speak(CONFIG.APP.welcomeMessage);
+        }
     }
     
     /**
@@ -373,8 +405,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Get selected voice
         const selectedVoice = voiceSelect.value;
         
-        // Speak the response
-        ttsManager.speak(response, selectedVoice);
+        // Speak the response if TTS is enabled
+        if (ttsEnabled) {
+            ttsManager.speak(response, selectedVoice);
+        }
     }
     
     /**
@@ -400,8 +434,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Get selected voice
         const selectedVoice = voiceSelect.value;
         
-        // Speak the response using ResponsiveVoice
-        ttsManager.speak(response, selectedVoice);
+        // Speak the response using ResponsiveVoice if TTS is enabled
+        if (ttsEnabled) {
+            ttsManager.speak(response, selectedVoice);
+        }
     }
     
     /**
@@ -754,8 +790,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             
-            // Announce language change
-            if (audioInitialized && window.responsiveVoice) {
+            // Announce language change if TTS is enabled
+            if (audioInitialized && window.responsiveVoice && ttsEnabled) {
                 // Use rate 0.9 for better Tagalog pronunciation
                 responsiveVoice.speak("Tagalog mode activated. Maaari ka nang magsalita sa Tagalog.", voiceSelect.value, { rate: 0.9 });
             }
@@ -771,8 +807,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             
-            // Announce language change
-            if (audioInitialized && window.responsiveVoice) {
+            // Announce language change if TTS is enabled
+            if (audioInitialized && window.responsiveVoice && ttsEnabled) {
                 responsiveVoice.speak("English mode activated.", voiceSelect.value);
             }
             
