@@ -23,6 +23,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentLanguage = localStorage.getItem('preferredLanguage') || 'en'; // Default to English
     let microphonePermissionGranted = localStorage.getItem('microphonePermission') === 'granted';
     let ttsEnabled = localStorage.getItem('ttsEnabled') !== 'false'; // Default to enabled
+    let saveInProgress = false;
+    let saveDebounceTimer = null;
+    
+    // Create saving indicator
+    const savingIndicator = document.createElement('div');
+    savingIndicator.className = 'fixed bottom-4 left-4 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 py-1 px-3 rounded-full text-xs shadow-md hidden flex items-center';
+    savingIndicator.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-3 w-3 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Saving...
+    `;
+    document.body.appendChild(savingIndicator);
     
     // Initialize managers
     const speechRecognitionManager = new SpeechRecognitionManager(
@@ -45,6 +59,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialize GeminiAI with the system prompt (now async)
         await geminiManager.initialize();
         updateStatus('ready', 'AI system loaded successfully');
+        
+        // Load chat history from localStorage after AI is initialized
+        loadChatHistory();
     } catch (error) {
         console.error('Error initializing AI system:', error);
         updateStatus('error', 'Error loading AI system. Using fallback mode.');
@@ -60,10 +77,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Initializing with stored microphone permission: granted');
     }
     
-    // Enhanced welcome animation
-    setTimeout(() => {
-        addWelcomeAnimation();
-    }, 500);
+    // Enhanced welcome animation - only show if no chat history exists
+    if (!chatHistoryExists()) {
+        setTimeout(() => {
+            addWelcomeAnimation();
+        }, 500);
+    }
     
     // Set up callback to stop TTS when user starts speaking
     speechRecognitionManager.setOnSpeechStartCallback(() => {
@@ -208,6 +227,58 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Set initial language indicator
     updateLanguageButton();
+    
+    // Add a clear history button to the controls
+    const controlsContainer = document.querySelector('.controls .flex.flex-wrap.justify-between');
+    const clearHistoryButton = document.createElement('button');
+    clearHistoryButton.innerHTML = '<i class="fas fa-trash"></i>';
+    clearHistoryButton.className = 'p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 transition transform hover:scale-105 shadow-sm ml-2';
+    clearHistoryButton.title = 'Clear chat history';
+    clearHistoryButton.onclick = clearChatHistory;
+    
+    // Add export/import button
+    const exportImportButton = document.createElement('button');
+    exportImportButton.innerHTML = '<i class="fas fa-download"></i>';
+    exportImportButton.className = 'p-2 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-600 transition transform hover:scale-105 shadow-sm ml-2';
+    exportImportButton.title = 'Export/Import chat history';
+    exportImportButton.onclick = toggleExportImportMenu;
+    
+    // Add buttons to controls
+    controlsContainer.appendChild(clearHistoryButton);
+    controlsContainer.appendChild(exportImportButton);
+    
+    // Create export/import menu (hidden initially)
+    const exportImportMenu = document.createElement('div');
+    exportImportMenu.className = 'export-import-menu fixed bottom-20 right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 hidden z-50 border border-gray-200 dark:border-gray-700';
+    exportImportMenu.innerHTML = `
+        <div class="flex flex-col gap-3">
+            <h3 class="font-medium text-gray-700 dark:text-gray-300 mb-2">Chat History</h3>
+            <button id="export-history" class="bg-blue-500 hover:bg-blue-600 text-white rounded-md py-1 px-3 text-sm flex items-center justify-center">
+                <i class="fas fa-download mr-2"></i> Export Chat
+            </button>
+            <div class="relative">
+                <button id="import-history" class="bg-green-500 hover:bg-green-600 text-white rounded-md py-1 px-3 text-sm flex items-center justify-center">
+                    <i class="fas fa-upload mr-2"></i> Import Chat
+                </button>
+                <input type="file" id="import-file" class="hidden" accept=".json">
+            </div>
+            <div id="last-saved" class="text-xs text-gray-500 dark:text-gray-400 mt-1"></div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 italic border-t border-gray-200 dark:border-gray-700 pt-2 mt-1">
+                Note: Chat history is stored locally on your device only.
+            </div>
+        </div>
+    `;
+    document.body.appendChild(exportImportMenu);
+    
+    // Add event listeners for export/import
+    document.getElementById('export-history').addEventListener('click', exportChatHistory);
+    document.getElementById('import-history').addEventListener('click', () => {
+        document.getElementById('import-file').click();
+    });
+    document.getElementById('import-file').addEventListener('change', importChatHistory);
+    
+    // Update last saved timestamp display
+    updateLastSavedDisplay();
     
     /**
      * Check for existing microphone permission
@@ -448,10 +519,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const messageElement = document.createElement('div');
         messageElement.className = 'flex justify-end mb-4';
         
-        // Generate a random time string (for visual purposes only)
+        // Generate a time string
         const now = new Date();
         const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
                           now.getMinutes().toString().padStart(2, '0');
+        const timestamp = now.getTime();
         
         messageElement.innerHTML = `
             <div class="flex flex-col items-end">
@@ -468,6 +540,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
         chatContainer.appendChild(messageElement);
         chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        // Save to localStorage
+        saveChatMessage('user', message, timestamp);
     }
     
     /**
@@ -478,10 +553,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const messageElement = document.createElement('div');
         messageElement.className = 'flex mb-4';
         
-        // Generate a random time string (for visual purposes only)
+        // Generate a time string
         const now = new Date();
         const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
                           now.getMinutes().toString().padStart(2, '0');
+        const timestamp = now.getTime();
         
         // Create AI avatar
         const avatarColors = ['from-primary to-primary-light', 'from-accent to-accent-light'];
@@ -505,6 +581,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
         chatContainer.appendChild(messageElement);
         chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        // Save to localStorage
+        saveChatMessage('ai', message, timestamp);
     }
     
     /**
@@ -852,6 +931,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const messageElement = document.createElement('div');
         messageElement.className = 'flex justify-center mb-4 animate-fade-in';
         
+        // Generate a timestamp
+        const now = new Date();
+        const timestamp = now.getTime();
+        
         // Determine the proper styles based on message type
         let bgColor, textColor, iconClass, borderColor, iconBg;
         switch (type) {
@@ -898,6 +981,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
         chatContainer.appendChild(messageElement);
         chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        // Save system message to localStorage
+        saveChatMessage('system', message, timestamp, type);
     }
     
     /**
@@ -939,5 +1025,472 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => {
             addAIMessage(CONFIG.APP.welcomeMessage);
         }, 800);
+    }
+    
+    /**
+     * Checks if there's existing chat history
+     * @returns {boolean} - True if chat history exists
+     */
+    function chatHistoryExists() {
+        const chatHistory = localStorage.getItem('chatHistory');
+        return chatHistory && JSON.parse(chatHistory).length > 0;
+    }
+    
+    /**
+     * Saves a chat message to localStorage with debouncing
+     * @param {string} role - The role (user, ai, system)
+     * @param {string} message - The message content
+     * @param {number} timestamp - The message timestamp
+     * @param {string} type - Optional type for system messages
+     */
+    function saveChatMessage(role, message, timestamp, type = null) {
+        // Show saving indicator
+        showSavingIndicator();
+        
+        // Clear any existing debounce timer
+        if (saveDebounceTimer) {
+            clearTimeout(saveDebounceTimer);
+        }
+        
+        // Set a new debounce timer
+        saveDebounceTimer = setTimeout(() => {
+            // Get existing history
+            let chatHistory = localStorage.getItem('chatHistory');
+            let historyData;
+            
+            if (!chatHistory) {
+                // Create new history data with metadata
+                historyData = {
+                    version: '1.0',
+                    created: Date.now(),
+                    updated: Date.now(),
+                    appInfo: {
+                        name: 'Jasmine AI Chat',
+                        version: '1.0.0'
+                    },
+                    messages: []
+                };
+            } else {
+                try {
+                    // Parse existing history
+                    const parsedData = JSON.parse(chatHistory);
+                    
+                    if (Array.isArray(parsedData)) {
+                        // Old format - convert to new format with metadata
+                        historyData = {
+                            version: '1.0',
+                            created: Date.now(),
+                            updated: Date.now(),
+                            appInfo: {
+                                name: 'Jasmine AI Chat',
+                                version: '1.0.0'
+                            },
+                            messages: parsedData
+                        };
+                    } else {
+                        // Already in new format
+                        historyData = parsedData;
+                        historyData.updated = Date.now();
+                    }
+                } catch (error) {
+                    console.error('Error parsing chat history:', error);
+                    // Create new history if parsing fails
+                    historyData = {
+                        version: '1.0',
+                        created: Date.now(),
+                        updated: Date.now(),
+                        appInfo: {
+                            name: 'Jasmine AI Chat',
+                            version: '1.0.0'
+                        },
+                        messages: []
+                    };
+                }
+            }
+            
+            // Prepare message object
+            const messageObj = {
+                role,
+                content: message,
+                timestamp,
+            };
+            
+            // Add type for system messages
+            if (role === 'system' && type) {
+                messageObj.type = type;
+            }
+            
+            // Add message to array
+            historyData.messages.push(messageObj);
+            
+            // Keep history within reasonable limits (maximum 100 messages)
+            if (historyData.messages.length > 100) {
+                historyData.messages.splice(0, historyData.messages.length - 100);
+            }
+            
+            // Save back to localStorage
+            try {
+                localStorage.setItem('chatHistory', JSON.stringify(historyData));
+                
+                // Update last saved timestamp
+                localStorage.setItem('chatLastSaved', timestamp);
+                updateLastSavedDisplay();
+                
+                // Also update the Gemini message history if it's a user or AI message
+                if (role === 'user') {
+                    geminiManager.addUserMessage(message);
+                } else if (role === 'ai') {
+                    geminiManager.addAIResponse(message);
+                }
+                
+                // Hide saving indicator
+                hideSavingIndicator();
+            } catch (error) {
+                console.error('Error saving chat history to localStorage:', error);
+                updateStatus('error', 'Failed to save chat history');
+                hideSavingIndicator();
+            }
+        }, 500); // 500ms debounce delay
+    }
+    
+    /**
+     * Shows the saving indicator
+     */
+    function showSavingIndicator() {
+        if (!saveInProgress) {
+            saveInProgress = true;
+            savingIndicator.classList.remove('hidden');
+            savingIndicator.classList.add('flex');
+        }
+    }
+    
+    /**
+     * Hides the saving indicator
+     */
+    function hideSavingIndicator() {
+        saveInProgress = false;
+        savingIndicator.classList.add('hidden');
+        savingIndicator.classList.remove('flex');
+    }
+    
+    /**
+     * Loads chat history from localStorage
+     */
+    function loadChatHistory() {
+        const chatHistory = localStorage.getItem('chatHistory');
+        if (!chatHistory) return;
+        
+        // Clear the chat container
+        chatContainer.innerHTML = '';
+        
+        try {
+            // Parse history and add messages to UI
+            const historyData = JSON.parse(chatHistory);
+            
+            // Handle both new format (with metadata) and old format (just an array)
+            let historyArray;
+            
+            if (Array.isArray(historyData)) {
+                // Old format - just an array of messages
+                historyArray = historyData;
+            } else if (historyData.messages && Array.isArray(historyData.messages)) {
+                // New format with metadata
+                historyArray = historyData.messages;
+            } else {
+                throw new Error('Invalid chat history format');
+            }
+            
+            // Sort by timestamp to ensure correct order
+            historyArray.sort((a, b) => a.timestamp - b.timestamp);
+            
+            // Add messages to UI
+            historyArray.forEach(msg => {
+                if (msg.role === 'user') {
+                    // Recreate user message from stored data
+                    const messageElement = document.createElement('div');
+                    messageElement.className = 'flex justify-end mb-4';
+                    
+                    // Format time string
+                    const date = new Date(msg.timestamp);
+                    const timeString = date.getHours().toString().padStart(2, '0') + ':' + 
+                                      date.getMinutes().toString().padStart(2, '0');
+                    
+                    messageElement.innerHTML = `
+                        <div class="flex flex-col items-end">
+                            <div class="message-bubble user-message bg-secondary dark:bg-gray-600 text-gray-800 dark:text-gray-100 rounded-2xl rounded-tr-none py-3 px-4 max-w-[80%] shadow-sm">
+                                <div class="message-content">${msg.content}</div>
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1 mr-2 flex items-center">
+                                <span>${timeString}</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>
+                    `;
+                    chatContainer.appendChild(messageElement);
+                    
+                    // Make sure it's in the Gemini message history
+                    geminiManager.addUserMessage(msg.content);
+                } else if (msg.role === 'ai') {
+                    // Recreate AI message from stored data
+                    const messageElement = document.createElement('div');
+                    messageElement.className = 'flex mb-4';
+                    
+                    // Format time string
+                    const date = new Date(msg.timestamp);
+                    const timeString = date.getHours().toString().padStart(2, '0') + ':' + 
+                                      date.getMinutes().toString().padStart(2, '0');
+                    
+                    // Create AI avatar 
+                    const avatarColors = ['from-primary to-primary-light', 'from-accent to-accent-light'];
+                    const randomColorClass = avatarColors[0]; // Use first one for consistency
+                    
+                    messageElement.innerHTML = `
+                        <div class="flex flex-col">
+                            <div class="flex items-end mb-1">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br ${randomColorClass} flex items-center justify-center shadow-sm mr-2 overflow-hidden border-2 border-white dark:border-gray-700">
+                                    <span class="text-xs text-white font-bold font-display">J</span>
+                                </div>
+                                <div class="message-bubble ai-message bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none py-3 px-4 max-w-[80%] shadow-sm">
+                                    <div class="message-content">${msg.content}</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-400 ml-10 flex items-center">
+                                <span class="mr-1">${timeString}</span>
+                                <span class="text-xs font-light">• Jasmine</span>
+                            </div>
+                        </div>
+                    `;
+                    chatContainer.appendChild(messageElement);
+                    
+                    // Make sure it's in the Gemini message history
+                    geminiManager.addAIResponse(msg.content);
+                } else if (msg.role === 'system') {
+                    // Recreate system message
+                    const messageElement = document.createElement('div');
+                    messageElement.className = 'flex justify-center mb-4';
+                    
+                    // Determine the proper styles based on message type
+                    let bgColor, textColor, iconClass, borderColor, iconBg;
+                    const type = msg.type || 'info';
+                    
+                    switch (type) {
+                        case 'success':
+                            bgColor = 'bg-green-50 dark:bg-green-900/20';
+                            textColor = 'text-green-700 dark:text-green-300';
+                            borderColor = 'border-green-200 dark:border-green-700/30';
+                            iconClass = 'fa-check-circle text-green-500';
+                            iconBg = 'bg-green-100 dark:bg-green-800/50';
+                            break;
+                        case 'warning':
+                            bgColor = 'bg-amber-50 dark:bg-amber-900/20';
+                            textColor = 'text-amber-700 dark:text-amber-300';
+                            borderColor = 'border-amber-200 dark:border-amber-700/30';
+                            iconClass = 'fa-exclamation-triangle text-amber-500';
+                            iconBg = 'bg-amber-100 dark:bg-amber-800/50';
+                            break;
+                        case 'error':
+                            bgColor = 'bg-red-50 dark:bg-red-900/20';
+                            textColor = 'text-red-700 dark:text-red-300';
+                            borderColor = 'border-red-200 dark:border-red-700/30';
+                            iconClass = 'fa-times-circle text-red-500';
+                            iconBg = 'bg-red-100 dark:bg-red-800/50';
+                            break;
+                        default: // info
+                            bgColor = 'bg-indigo-50 dark:bg-indigo-900/20';
+                            textColor = 'text-indigo-700 dark:text-indigo-300';
+                            borderColor = 'border-indigo-200 dark:border-indigo-700/30';
+                            iconClass = 'fa-info-circle text-indigo-500';
+                            iconBg = 'bg-indigo-100 dark:bg-indigo-800/50';
+                    }
+                    
+                    messageElement.innerHTML = `
+                        <div class="relative ${bgColor} border ${borderColor} rounded-lg py-2 px-4 max-w-[90%] shadow-sm flex items-center">
+                            <div class="absolute -left-1 -top-1 w-8 h-8 ${iconBg} rounded-full flex items-center justify-center shadow-sm border-2 border-white dark:border-gray-700">
+                                <i class="fas ${iconClass}"></i>
+                            </div>
+                            <div class="ml-6">
+                                <div class="message-content ${textColor} text-sm font-light">
+                                    ${msg.content}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    chatContainer.appendChild(messageElement);
+                }
+            });
+            
+            // Scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        } catch (error) {
+            console.error('Error loading chat history:', error);
+            addSystemMessage('Error loading chat history. Starting a new conversation.', 'error');
+        }
+    }
+    
+    /**
+     * Clears chat history from localStorage and UI
+     */
+    function clearChatHistory() {
+        // Show confirmation dialog
+        if (confirm('Are you sure you want to clear all chat history? This cannot be undone.')) {
+            // Clear from localStorage
+            localStorage.removeItem('chatHistory');
+            
+            // Clear the chat container
+            chatContainer.innerHTML = '';
+            
+            // Reset Gemini message history
+            geminiManager.initialize();
+            
+            // Add welcome animation
+            addWelcomeAnimation();
+            
+            // Show success message
+            updateStatus('success', 'Chat history cleared successfully');
+        }
+    }
+    
+    /**
+     * Toggles the export/import menu
+     */
+    function toggleExportImportMenu() {
+        const menu = document.querySelector('.export-import-menu');
+        menu.classList.toggle('hidden');
+        updateLastSavedDisplay();
+    }
+    
+    /**
+     * Updates the last saved timestamp display
+     */
+    function updateLastSavedDisplay() {
+        const lastSavedElement = document.getElementById('last-saved');
+        const lastSaved = localStorage.getItem('chatLastSaved');
+        
+        if (lastSaved) {
+            const date = new Date(parseInt(lastSaved));
+            const formattedDate = date.toLocaleString();
+            lastSavedElement.textContent = `Last saved: ${formattedDate}`;
+        } else {
+            lastSavedElement.textContent = 'No saved chats yet';
+        }
+    }
+    
+    /**
+     * Exports chat history to a JSON file
+     */
+    function exportChatHistory() {
+        const chatHistory = localStorage.getItem('chatHistory');
+        
+        if (!chatHistory) {
+            updateStatus('warning', 'No chat history to export');
+            return;
+        }
+        
+        try {
+            // Parse history data
+            const historyData = JSON.parse(chatHistory);
+            
+            // Add export timestamp and privacy notice
+            let exportData;
+            
+            if (Array.isArray(historyData)) {
+                // Old format - convert to new format for export
+                exportData = {
+                    version: '1.0',
+                    created: Date.now(),
+                    updated: Date.now(),
+                    exported: Date.now(),
+                    appInfo: {
+                        name: 'Jasmine AI Chat',
+                        version: '1.0.0'
+                    },
+                    privacyNotice: 'This chat history file contains your conversation with Jasmine AI. It is exported for your personal backup only.',
+                    messages: historyData
+                };
+            } else {
+                // Already in new format - just add export timestamp
+                exportData = { ...historyData };
+                exportData.exported = Date.now();
+                exportData.privacyNotice = 'This chat history file contains your conversation with Jasmine AI. It is exported for your personal backup only.';
+            }
+            
+            // Create a blob with the chat history
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            
+            // Create a temporary link and trigger download
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            
+            // Format date for filename
+            const date = new Date();
+            const formattedDate = date.toISOString().slice(0, 10);
+            link.download = `jasmine-chat-${formattedDate}.json`;
+            
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            updateStatus('success', 'Chat history exported successfully');
+        } catch (error) {
+            console.error('Error exporting chat history:', error);
+            updateStatus('error', 'Failed to export chat history');
+        }
+    }
+    
+    /**
+     * Imports chat history from a JSON file
+     * @param {Event} event - The file input change event
+     */
+    function importChatHistory(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // Check file type
+        if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
+            updateStatus('error', 'Please select a valid JSON file');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                // Validate JSON format
+                const chatHistory = JSON.parse(e.target.result);
+                
+                // Validate structure (basic check)
+                if (!Array.isArray(chatHistory)) {
+                    throw new Error('Invalid chat history format');
+                }
+                
+                // Confirm import
+                if (confirm('Are you sure you want to import this chat history? This will replace your current chat history.')) {
+                    // Save to localStorage
+                    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                    
+                    // Update last saved timestamp
+                    localStorage.setItem('chatLastSaved', Date.now());
+                    
+                    // Reload chat
+                    loadChatHistory();
+                    
+                    // Show success message
+                    updateStatus('success', 'Chat history imported successfully');
+                    
+                    // Hide the menu
+                    document.querySelector('.export-import-menu').classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Error importing chat history:', error);
+                updateStatus('error', 'Invalid chat history file');
+            }
+        };
+        
+        reader.readAsText(file);
+        
+        // Reset file input
+        event.target.value = '';
     }
 }); 
