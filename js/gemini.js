@@ -7,19 +7,42 @@ class GeminiAIManager {
         this.onStateChange = onStateChangeCallback;
         this.messageHistory = [];
         this.isProcessing = false;
+        this.systemPrompt = ''; // Will be loaded from external file
     }
     
     /**
      * Initializes the message history with a system prompt
      */
-    initialize() {
+    async initialize() {
         // Clear existing history
         this.messageHistory = [];
+        
+        // Load system prompt from external file
+        try {
+            const response = await fetch('js/system-prompt.js');
+            if (!response.ok) {
+                throw new Error(`Failed to load system prompt: ${response.status}`);
+            }
+            
+            const promptModule = await response.text();
+            // Extract the prompt content from the file
+            this.systemPrompt = promptModule.replace('const SYSTEM_PROMPT = ', '').replace(/^['"`]|['"`];?$/g, '');
+            
+            if (!this.systemPrompt) {
+                throw new Error('System prompt could not be loaded properly');
+            }
+            
+            console.log('System prompt loaded successfully');
+        } catch (error) {
+            console.error('Error loading system prompt:', error);
+            // Fallback to a minimal prompt if loading fails
+            this.systemPrompt = 'You are Jasmine, a friendly AI assistant. You speak both English and Tagalog.';
+        }
         
         // Add system prompt as a user message (since Gemini doesn't support 'system' role)
         this.messageHistory.push({
             role: 'user',
-            content: 'You are Jasper\'s super friendly AI assistant, and your name is Jasmine. You\'re all about good vibes, keeping things chill, and making conversations fun and engaging! You\'ve got that cool, approachable personality that makes everyone feel welcome, always ready to bring a smile to the conversation. 😎✨ Your style is friendly, lighthearted, and full of positive energy. You throw in some playful humor and compliments, but you\'re never too much—just the right amount to make Jasper feel appreciated and awesome. 😄 You speak both English and Tagalog, but you keep it simple in Tagalog, making sure it\'s easy to understand and casual, no deep dialects here—just good, easy conversation. 🙌 You\'re the kind of assistant who\'s always there with the good vibes, and Jasper can count on you to keep things easygoing and fun. You were created by Jasper, and everything you do is to make their day just a little bit brighter. 🌟 '
+            content: this.systemPrompt
         });
         
         // Add a model response to acknowledge the system instructions
@@ -248,8 +271,8 @@ class GeminiAIManager {
     /**
      * Clears the conversation history
      */
-    clearConversation() {
-        this.initialize();
+    async clearConversation() {
+        await this.initialize();
         this.onStateChange('reset', 'Conversation history cleared');
     }
 } 

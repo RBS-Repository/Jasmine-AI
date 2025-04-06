@@ -2,7 +2,7 @@
  * Main Application Script
  * Initializes and coordinates all modules for the voice chat application
  */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // DOM Elements
     const chatContainer = document.getElementById('chat-container');
     const messageInput = document.getElementById('message-input');
@@ -33,8 +33,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const ttsManager = new TextToSpeechManager(updateStatus);
     
+    // Initialize the Gemini AI Manager
     const geminiManager = new GeminiAIManager(updateStatus);
-    geminiManager.initialize();
+    
+    // Initialize UI before AI is ready
+    updateStatus('initializing', 'Loading AI system...');
+    
+    try {
+        // Initialize GeminiAI with the system prompt (now async)
+        await geminiManager.initialize();
+        updateStatus('ready', 'AI system loaded successfully');
+    } catch (error) {
+        console.error('Error initializing AI system:', error);
+        updateStatus('error', 'Error loading AI system. Using fallback mode.');
+    }
     
     // If we have stored permission, set it immediately
     if (microphonePermissionGranted) {
@@ -42,6 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
         permissionsRequested = true;
         console.log('Initializing with stored microphone permission: granted');
     }
+    
+    // Enhanced welcome animation
+    setTimeout(() => {
+        addWelcomeAnimation();
+    }, 500);
     
     // Set up callback to stop TTS when user starts speaking
     speechRecognitionManager.setOnSpeechStartCallback(() => {
@@ -388,6 +405,73 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     /**
+     * Adds a user message to the chat
+     * @param {string} message - The user's message
+     */
+    function addUserMessage(message) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'flex justify-end mb-4';
+        
+        // Generate a random time string (for visual purposes only)
+        const now = new Date();
+        const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
+                          now.getMinutes().toString().padStart(2, '0');
+        
+        messageElement.innerHTML = `
+            <div class="flex flex-col items-end">
+                <div class="message-bubble user-message bg-secondary dark:bg-gray-600 text-gray-800 dark:text-gray-100 rounded-2xl rounded-tr-none py-3 px-4 max-w-[80%] shadow-sm">
+                    <div class="message-content">${message}</div>
+                </div>
+                <div class="text-xs text-gray-400 mt-1 mr-2 flex items-center">
+                    <span>${timeString}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+            </div>
+        `;
+        chatContainer.appendChild(messageElement);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    /**
+     * Adds an AI message to the chat
+     * @param {string} message - The AI's message
+     */
+    function addAIMessage(message) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'flex mb-4';
+        
+        // Generate a random time string (for visual purposes only)
+        const now = new Date();
+        const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
+                          now.getMinutes().toString().padStart(2, '0');
+        
+        // Create AI avatar
+        const avatarColors = ['from-primary to-primary-light', 'from-accent to-accent-light'];
+        const randomColorClass = avatarColors[Math.floor(Math.random() * avatarColors.length)];
+        
+        messageElement.innerHTML = `
+            <div class="flex flex-col">
+                <div class="flex items-end mb-1">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br ${randomColorClass} flex items-center justify-center shadow-sm mr-2 overflow-hidden border-2 border-white dark:border-gray-700">
+                        <span class="text-xs text-white font-bold font-display">J</span>
+                    </div>
+                    <div class="message-bubble ai-message bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none py-3 px-4 max-w-[80%] shadow-sm">
+                        <div class="message-content">${message}</div>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-400 ml-10 flex items-center">
+                    <span class="mr-1">${timeString}</span>
+                    <span class="text-xs font-light">• Jasmine</span>
+                </div>
+            </div>
+        `;
+        chatContainer.appendChild(messageElement);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    /**
      * Adds a user message element to prepare for speech recognition
      * @param {string} text - Initial text (might be empty or interim)
      */
@@ -395,27 +479,16 @@ document.addEventListener('DOMContentLoaded', () => {
         userMessageElement = document.createElement('div');
         userMessageElement.className = 'flex justify-end mb-4';
         userMessageElement.innerHTML = `
-            <div class="message-bubble user-message bg-secondary text-gray-800 rounded-2xl rounded-tr-none py-3 px-4 max-w-[80%] shadow-sm">
-                <div class="message-content">${text || ''}</div>
+            <div class="flex flex-col items-end">
+                <div class="message-bubble user-message bg-secondary dark:bg-gray-600 text-gray-800 dark:text-gray-100 rounded-2xl rounded-tr-none py-3 px-4 max-w-[80%] shadow-sm">
+                    <div class="message-content">${text || ''}</div>
+                </div>
+                <div class="text-xs text-gray-400 mt-1 mr-2 flex items-center">
+                    <span class="italic">typing...</span>
+                </div>
             </div>
         `;
         chatContainer.appendChild(userMessageElement);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-    
-    /**
-     * Adds a user message to the chat
-     * @param {string} message - The user's message
-     */
-    function addUserMessage(message) {
-        const messageElement = document.createElement('div');
-        messageElement.className = 'flex justify-end mb-4';
-        messageElement.innerHTML = `
-            <div class="message-bubble user-message bg-secondary text-gray-800 rounded-2xl rounded-tr-none py-3 px-4 max-w-[80%] shadow-sm">
-                <div class="message-content">${message}</div>
-            </div>
-        `;
-        chatContainer.appendChild(messageElement);
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
     
@@ -425,15 +498,27 @@ document.addEventListener('DOMContentLoaded', () => {
     function addAIThinkingMessage() {
         aiResponseElement = document.createElement('div');
         aiResponseElement.className = 'flex mb-4';
+        
         aiResponseElement.innerHTML = `
-            <div class="message-bubble ai-message bg-white text-gray-800 rounded-2xl rounded-tl-none py-3 px-4 max-w-[80%] shadow-sm">
-                <div class="message-content flex items-center">
-                    <span class="mr-2">Jasmine is thinking</span>
-                    <div class="typing-indicator">
-                        <span></span>
-                        <span></span>
-                        <span></span>
+            <div class="flex flex-col">
+                <div class="flex items-end mb-1">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-sm mr-2 overflow-hidden border-2 border-white dark:border-gray-700 relative">
+                        <span class="text-xs text-white font-bold font-display">J</span>
+                        <div class="absolute inset-0 bg-primary-light opacity-50 animate-pulse rounded-full"></div>
                     </div>
+                    <div class="message-bubble ai-message bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none py-3 px-4 max-w-[80%] shadow-sm">
+                        <div class="message-content flex items-center">
+                            <span class="mr-2">Jasmine is thinking</span>
+                            <div class="typing-indicator">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-400 ml-10">
+                    <span class="animate-pulse">Processing...</span>
                 </div>
             </div>
         `;
@@ -452,22 +537,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     /**
-     * Adds an AI message to the chat
-     * @param {string} message - The AI's message
-     */
-    function addAIMessage(message) {
-        const messageElement = document.createElement('div');
-        messageElement.className = 'flex mb-4';
-        messageElement.innerHTML = `
-            <div class="message-bubble ai-message bg-white text-gray-800 rounded-2xl rounded-tl-none py-3 px-4 max-w-[80%] shadow-sm">
-                <div class="message-content">${message}</div>
-            </div>
-        `;
-        chatContainer.appendChild(messageElement);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-    
-    /**
      * Updates the status indicator
      * @param {string} status - The current status
      * @param {string} message - The status message
@@ -476,48 +545,61 @@ document.addEventListener('DOMContentLoaded', () => {
         let statusDot = '';
         let statusColor = '';
         let iconClass = '';
+        let bgClass = '';
         
         // Determine the status dot color and icon
         switch (status) {
             case 'listening':
                 statusDot = 'bg-green-400';
-                statusColor = 'text-green-600';
+                statusColor = 'text-green-600 dark:text-green-400';
                 iconClass = 'fa-solid fa-headset';
+                bgClass = 'bg-green-50 dark:bg-green-900/20';
                 break;
             case 'speaking':
                 statusDot = 'bg-blue-400';
-                statusColor = 'text-blue-600';
+                statusColor = 'text-blue-600 dark:text-blue-400';
                 iconClass = 'fa-solid fa-volume-high';
+                bgClass = 'bg-blue-50 dark:bg-blue-900/20';
                 break;
             case 'thinking':
-                statusDot = 'bg-yellow-400';
-                statusColor = 'text-yellow-600';
+                statusDot = 'bg-amber-400';
+                statusColor = 'text-amber-600 dark:text-amber-400';
                 iconClass = 'fa-solid fa-brain';
+                bgClass = 'bg-amber-50 dark:bg-amber-900/20';
                 break;
             case 'error':
                 statusDot = 'bg-red-400';
-                statusColor = 'text-red-600';
+                statusColor = 'text-red-600 dark:text-red-400';
                 iconClass = 'fa-solid fa-circle-exclamation';
+                bgClass = 'bg-red-50 dark:bg-red-900/20';
                 break;
             case 'info':
                 statusDot = 'bg-indigo-400';
-                statusColor = 'text-indigo-600';
+                statusColor = 'text-indigo-600 dark:text-indigo-400';
                 iconClass = 'fa-solid fa-circle-info';
+                bgClass = 'bg-indigo-50 dark:bg-indigo-900/20';
                 break;
             default:
                 statusDot = 'bg-gray-400';
-                statusColor = 'text-gray-600';
+                statusColor = 'text-gray-600 dark:text-gray-400';
                 iconClass = 'fa-solid fa-circle-dot';
+                bgClass = 'bg-gray-50 dark:bg-gray-900/20';
         }
         
-        // Update the status indicator with animated dot
+        // Update the status indicator with animated dot and improved styling
         statusIndicator.innerHTML = `
-            <span class="inline-flex items-center">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full ${bgClass} animate-fade-in">
                 <span class="w-2 h-2 ${statusDot} rounded-full mr-2 animate-pulse"></span>
                 <i class="${iconClass} ${statusColor} mr-2 text-xs"></i>
-                <span class="font-medium">${message}</span>
+                <span class="font-medium text-gray-700 dark:text-gray-300">${message}</span>
             </span>
         `;
+        
+        // Add a subtle animation to highlight status changes
+        statusIndicator.classList.add('animate-pulse-soft');
+        setTimeout(() => {
+            statusIndicator.classList.remove('animate-pulse-soft');
+        }, 1000);
     }
     
     /**
@@ -728,16 +810,98 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Adds a system message to the chat
      * @param {string} message - The system message
+     * @param {string} type - The type of system message (info, success, warning, error)
      */
-    function addSystemMessage(message) {
+    function addSystemMessage(message, type = 'info') {
         const messageElement = document.createElement('div');
         messageElement.className = 'flex justify-center mb-4 animate-fade-in';
+        
+        // Determine the proper styles based on message type
+        let bgColor, textColor, iconClass, borderColor, iconBg;
+        switch (type) {
+            case 'success':
+                bgColor = 'bg-green-50 dark:bg-green-900/20';
+                textColor = 'text-green-700 dark:text-green-300';
+                borderColor = 'border-green-200 dark:border-green-700/30';
+                iconClass = 'fa-check-circle text-green-500';
+                iconBg = 'bg-green-100 dark:bg-green-800/50';
+                break;
+            case 'warning':
+                bgColor = 'bg-amber-50 dark:bg-amber-900/20';
+                textColor = 'text-amber-700 dark:text-amber-300';
+                borderColor = 'border-amber-200 dark:border-amber-700/30';
+                iconClass = 'fa-exclamation-triangle text-amber-500';
+                iconBg = 'bg-amber-100 dark:bg-amber-800/50';
+                break;
+            case 'error':
+                bgColor = 'bg-red-50 dark:bg-red-900/20';
+                textColor = 'text-red-700 dark:text-red-300';
+                borderColor = 'border-red-200 dark:border-red-700/30';
+                iconClass = 'fa-times-circle text-red-500';
+                iconBg = 'bg-red-100 dark:bg-red-800/50';
+                break;
+            default: // info
+                bgColor = 'bg-indigo-50 dark:bg-indigo-900/20';
+                textColor = 'text-indigo-700 dark:text-indigo-300';
+                borderColor = 'border-indigo-200 dark:border-indigo-700/30';
+                iconClass = 'fa-info-circle text-indigo-500';
+                iconBg = 'bg-indigo-100 dark:bg-indigo-800/50';
+        }
+        
         messageElement.innerHTML = `
-            <div class="bg-secondary-light text-gray-500 rounded-full py-2 px-4 max-w-[80%] text-sm font-light shadow-sm">
-                <div class="message-content">${message}</div>
+            <div class="relative ${bgColor} border ${borderColor} rounded-lg py-2 px-4 max-w-[90%] shadow-sm flex items-center">
+                <div class="absolute -left-1 -top-1 w-8 h-8 ${iconBg} rounded-full flex items-center justify-center shadow-sm border-2 border-white dark:border-gray-700">
+                    <i class="fas ${iconClass}"></i>
+                </div>
+                <div class="ml-6">
+                    <div class="message-content ${textColor} text-sm font-light">
+                        ${message}
+                    </div>
+                </div>
             </div>
         `;
         chatContainer.appendChild(messageElement);
         chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    /**
+     * Adds an animated welcome message with a system introduction
+     */
+    function addWelcomeAnimation() {
+        // Clear the initial empty state message
+        chatContainer.innerHTML = '';
+        
+        // Add a stylized welcome message
+        const welcomeElement = document.createElement('div');
+        welcomeElement.className = 'relative flex justify-center mb-6 animate-fade-in';
+        welcomeElement.innerHTML = `
+            <div class="absolute -top-4 -left-4 w-24 h-24 bg-primary-light/10 rounded-full filter blur-xl animate-pulse-soft"></div>
+            <div class="relative bg-gradient-to-r from-primary-light/20 to-accent-light/20 px-6 py-3 rounded-2xl shadow-sm
+                        backdrop-blur-sm max-w-[90%] border border-white/10 dark:border-gray-700/30 z-10">
+                <div class="text-center">
+                    <div class="flex justify-center mb-2">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow mb-2 border-2 border-white dark:border-gray-700">
+                            <span class="text-lg text-white font-bold font-display">J</span>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-display font-semibold text-primary dark:text-primary-light mb-1">Welcome to Jasmine</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">Your personal AI assistant is ready to chat!</p>
+                    <div class="mt-3 flex space-x-2 justify-center">
+                        <button class="bg-primary hover:bg-primary-dark text-white text-xs py-1 px-3 rounded-full transition transform hover:scale-105 shadow-sm" onclick="document.getElementById('toggle-mic').click()">
+                            <i class="fas fa-microphone mr-1"></i> Start Speaking
+                        </button>
+                        <button class="bg-secondary dark:bg-gray-700 hover:bg-secondary-dark dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-3 rounded-full transition transform hover:scale-105 shadow-sm" onclick="document.getElementById('message-input').focus()">
+                            <i class="fas fa-keyboard mr-1"></i> Type a Message
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        chatContainer.appendChild(welcomeElement);
+        
+        // Add the actual welcome message
+        setTimeout(() => {
+            addAIMessage(CONFIG.APP.welcomeMessage);
+        }, 800);
     }
 }); 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jasmine - Jasper's Flirty AI Companion</title>
+    <title>Jasmine - Your AI Companion</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -25,6 +25,11 @@
                             light: '#A5B4FC',
                             DEFAULT: '#818CF8',
                             dark: '#6366F1',
+                        },
+                        neutral: {
+                            light: '#F9FAFB',
+                            DEFAULT: '#F3F4F6',
+                            dark: '#E5E7EB',
                         }
                     },
                     animation: {
@@ -34,6 +39,11 @@
                         'slide-up': 'slideUp 0.3s ease-out',
                         'scale-in': 'scaleIn 0.2s ease-out',
                         'bounce-in': 'bounceIn 0.5s ease-out',
+                        'shimmer': 'shimmer 1.5s infinite',
+                        'rotate-slow': 'rotate 15s linear infinite',
+                        'wave': 'wave 1.2s ease-in-out infinite',
+                        'slide-down': 'slideDown 0.3s ease-out',
+                        'fade-in-slow': 'fadeIn 1s ease-out',
                     },
                     keyframes: {
                         float: {
@@ -52,6 +62,10 @@
                             '0%': { transform: 'translateY(20px)', opacity: 0 },
                             '100%': { transform: 'translateY(0)', opacity: 1 },
                         },
+                        slideDown: {
+                            '0%': { transform: 'translateY(-20px)', opacity: 0 },
+                            '100%': { transform: 'translateY(0)', opacity: 1 },
+                        },
                         scaleIn: {
                             '0%': { transform: 'scale(0.95)', opacity: 0 },
                             '100%': { transform: 'scale(1)', opacity: 1 },
@@ -60,7 +74,16 @@
                             '0%': { transform: 'scale(0.8)', opacity: 0 },
                             '70%': { transform: 'scale(1.05)', opacity: 0.9 },
                             '100%': { transform: 'scale(1)', opacity: 1 },
-                        }
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' }
+                        },
+                        wave: {
+                            '0%': { transform: 'scale(0.8) rotate(0deg)' },
+                            '50%': { transform: 'scale(1.2) rotate(0deg)' },
+                            '100%': { transform: 'scale(0.8) rotate(0deg)' }
+                        },
                     }
                 }
             }
@@ -71,19 +94,46 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* CSS Variables for reusable values */
+        :root {
+            --primary-color: #FF4778;
+            --primary-light: #FF85A2;
+            --primary-dark: #D62E5E;
+            --accent-color: #818CF8;
+            --accent-light: #A5B4FC;
+            --accent-dark: #6366F1;
+            --bg-light: #F9FAFB;
+            --bg-dark: #111827;
+            --text-light: #4B5563;
+            --text-dark: #E5E7EB;
+            --transition-standard: all 0.3s ease;
+        }
+        
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #f9fafb;
+            background-color: var(--bg-light);
+            background-image: 
+                radial-gradient(circle at 20% 15%, rgba(255,71,120,0.05) 0%, transparent 30%),
+                radial-gradient(circle at 80% 85%, rgba(129,140,248,0.05) 0%, transparent 30%),
+                url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23FF4778' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
             overflow-x: hidden;
+            min-height: 100vh;
+        }
+        
+        .font-display {
+            font-family: 'Quicksand', sans-serif;
         }
         
         .chat-container {
-            height: calc(100vh - 220px);
+            height: calc(100vh - 320px); /* Adjusted for new nav */
             overflow-y: auto;
             scroll-behavior: smooth;
             padding: 1.5rem;
+            background-image: 
+                radial-gradient(circle at 90% 10%, rgba(255,71,120,0.03) 0%, transparent 20%),
+                radial-gradient(circle at 10% 90%, rgba(129,140,248,0.03) 0%, transparent 20%);
         }
         
         .chat-container::-webkit-scrollbar {
@@ -108,7 +158,7 @@
             height: 8px;
             width: 8px;
             margin: 0 1px;
-            background-color: #FF4778;
+            background-color: var(--primary-color);
             border-radius: 50%;
             display: inline-block;
             opacity: 0.6;
@@ -181,7 +231,7 @@
         
         .message-bubble {
             position: relative;
-            transition: all 0.3s;
+            transition: var(--transition-standard);
         }
         
         .user-message {
@@ -222,7 +272,7 @@
         }
         
         .button-hover-effect {
-            transition: all 0.3s;
+            transition: var(--transition-standard);
             overflow: hidden;
             position: relative;
         }
@@ -243,6 +293,22 @@
         
         .button-hover-effect:hover::after {
             transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .shimmer-bg {
+            background: linear-gradient(90deg, 
+                rgba(255,255,255,0) 0%, 
+                rgba(255,255,255,0.8) 50%, 
+                rgba(255,255,255,0) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         .toggle-switch {
@@ -283,45 +349,412 @@
         }
         
         input:checked + .toggle-slider {
-            background-color: #FF4778;
+            background-color: var(--primary-color);
         }
         
         input:checked + .toggle-slider:before {
             transform: translateX(30px);
+        }
+        
+        /* Mobile Nav */
+        .mobile-nav {
+            transform: translateY(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .mobile-nav.open {
+            transform: translateY(0);
+        }
+        
+        .nav-link {
+            position: relative;
+            transition: var(--transition-standard);
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background-color: var(--primary-color);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        /* Onboarding modal */
+        .onboarding-modal {
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition-standard);
+        }
+        
+        .onboarding-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Dark mode styles */
+        .dark body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 20% 15%, rgba(255,71,120,0.08) 0%, transparent 30%),
+                radial-gradient(circle at 80% 85%, rgba(129,140,248,0.08) 0%, transparent 30%),
+                url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23818CF8' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            color: var(--text-dark);
+        }
+        
+        .dark .glass-effect {
+            background: rgba(17, 24, 39, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .dark .chat-container {
+            background-color: #1F2937;
+            background-image: 
+                radial-gradient(circle at 90% 10%, rgba(255,71,120,0.05) 0%, transparent 20%),
+                radial-gradient(circle at 10% 90%, rgba(129,140,248,0.05) 0%, transparent 20%);
+        }
+        
+        .dark .ai-message::after {
+            background-color: #374151;
+        }
+        
+        .dark .user-message::after {
+            background-color: #4B5563;
+        }
+        
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .chat-container {
+                height: calc(100vh - 350px);
+            }
+            
+            /* Reduce or hide decorative blurred elements on mobile */
+            .filter.blur-2xl, .filter.blur-xl {
+                filter: blur(8px); /* Reduce blur intensity */
+                opacity: 0.4 !important; /* Reduce opacity */
+            }
+            
+            /* Simplify the glass effect on mobile */
+            .glass-effect {
+                backdrop-filter: blur(5px);
+                -webkit-backdrop-filter: blur(5px);
+            }
+            
+            /* Make background pattern less prominent */
+            body {
+                background-image: 
+                    radial-gradient(circle at 20% 15%, rgba(255,71,120,0.03) 0%, transparent 30%),
+                    radial-gradient(circle at 80% 85%, rgba(129,140,248,0.03) 0%, transparent 30%);
+                /* Remove pattern background on mobile */
+            }
+            
+            /* Reduce size of decorative elements */
+            .absolute.bg-primary-light\/10, 
+            .absolute.bg-accent-light\/10,
+            .absolute.bg-primary\/5,
+            .absolute.w-24.h-24,
+            .decorative-bg {
+                width: 20px !important;
+                height: 20px !important;
+                opacity: 0.3 !important;
+            }
+            
+            /* Fix controls background decorative elements */
+            .controls .absolute {
+                opacity: 0.2 !important;
+            }
+            
+            /* Fix chat container decorative elements */
+            #chat-container .absolute {
+                opacity: 0.2 !important;
+            }
+            
+            /* Optimize fixed background */
+            .fixed.inset-0.bg-gradient-to-br {
+                opacity: 0.3;
+            }
+            
+            /* Optimize onboarding modal */
+            .onboarding-modal {
+                backdrop-filter: blur(5px);
+                -webkit-backdrop-filter: blur(5px);
+            }
+            
+            /* Fix navigation backdrop blur */
+            nav.fixed {
+                backdrop-filter: blur(5px);
+                -webkit-backdrop-filter: blur(5px);
+                background-color: rgba(255,255,255,0.95);
+            }
+            
+            .dark nav.fixed {
+                background-color: rgba(17, 24, 39, 0.95);
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .chat-container {
+                height: calc(100vh - 380px);
+            }
+            
+            /* Further reduce or hide decorative elements on very small screens */
+            .filter.blur-2xl, .filter.blur-xl {
+                display: none; /* Hide completely on very small screens */
+            }
+            
+            /* Simplify wave animation */
+            .wave-animation .wave:nth-child(2),
+            .wave-animation .wave:nth-child(3) {
+                display: none;
+            }
+            
+            .wave-animation .wave {
+                opacity: 0.4;
+            }
+            
+            /* Optimize header for small screens */
+            header .absolute {
+                display: none;
+            }
+            
+            /* Simplify background for better mobile performance */
+            body {
+                background-image: none;
+                background-color: var(--bg-light);
+            }
+            
+            .dark body {
+                background-image: none;
+                background-color: var(--bg-dark);
+            }
+        }
+        
+        /* Performance optimizations for mobile devices */
+        @media (max-width: 768px) {
+            /* Use hardware acceleration for animations */
+            .animate-float,
+            .animate-pulse-soft,
+            .animate-wave,
+            .button-hover-effect {
+                transform: translateZ(0);
+                will-change: transform;
+            }
+            
+            /* Reduce motion for users who prefer it */
+            @media (prefers-reduced-motion: reduce) {
+                .animate-float,
+                .animate-pulse-soft,
+                .animate-wave,
+                .wave {
+                    animation: none !important;
+                    transform: none !important;
+                }
+            }
         }
     </style>
     <!-- Add ResponsiveVoice library -->
     <script src="https://code.responsivevoice.org/responsivevoice.js?key=TQgme7Df"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
-    <div class="container mx-auto px-4 py-6 max-w-4xl">
-        <header class="mb-6 relative">
+    <div class="fixed inset-0 bg-gradient-to-br from-primary-light/5 via-transparent to-accent-light/5 pointer-events-none" id="background-gradient"></div>
+    
+
+    
+    <div class="container mx-auto px-4 py-6 max-w-4xl relative z-10 mt-16">
+        <header class="mb-8 relative">
+            <div class="absolute -top-16 -left-16 w-32 h-32 bg-primary-light/10 rounded-full filter blur-2xl animate-pulse-soft decorative-bg"></div>
+            <div class="absolute -top-16 -right-16 w-32 h-32 bg-accent-light/10 rounded-full filter blur-2xl animate-pulse-soft decorative-bg"></div>
+            
             <div class="flex justify-center">
-                <div class="relative animate-float">
-                    <h1 class="text-4xl font-bold text-center text-primary">
-                        Jasmine
-                    </h1>
-                    <p class="text-center text-gray-500 text-lg mt-1 font-light animate-pulse-soft">
-                        Your AI companion powered by Jasper
-                    </p>
-                    <div class="absolute -top-2 -right-2 w-8 h-8 animate-bounce-in delay-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FF4778">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                        </svg>
+                <div class="relative">
+                    <div class="absolute -top-2 -left-8 w-6 h-6 bg-primary-light rounded-full animate-float opacity-50"></div>
+                    <div class="absolute top-6 -right-6 w-4 h-4 bg-accent-light rounded-full animate-float opacity-50" style="animation-delay: 1s"></div>
+                    
+                    <div class="relative animate-float z-10">
+                        <div class="absolute -top-20 left-1/2 transform -translate-x-1/2 w-40 h-40 bg-primary/5 rounded-full filter blur-md decorative-bg"></div>
+                        
+                        <div class="relative flex flex-col items-center justify-center transform transition-all duration-300 hover:scale-105">
+                            <div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-lg mb-3 overflow-hidden border-4 border-white dark:border-gray-700">
+                                <div class="text-6xl font-display font-bold text-white">J</div>
+                            </div>
+                            
+                            <h1 class="text-5xl font-display font-bold text-center text-primary relative dark:text-primary-light">
+                                <span class="absolute -top-10 left-0 w-full h-full flex justify-center">
+                                    <span class="w-2 h-2 rounded-full bg-primary-light animate-wave" style="animation-delay: 0.1s"></span>
+                                    <span class="w-2 h-2 rounded-full bg-primary-light animate-wave ml-1" style="animation-delay: 0.2s"></span>
+                                    <span class="w-2 h-2 rounded-full bg-primary-light animate-wave ml-1" style="animation-delay: 0.3s"></span>
+                                </span>
+                                Jasmine
+                                <div class="absolute -top-2 -right-2 w-8 h-8 animate-bounce-in delay-300">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FF4778">
+                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                    </svg>
+                                </div>
+                            </h1>
+                            <p class="text-center text-gray-600 dark:text-gray-300 text-xl mt-2 font-light animate-pulse-soft max-w-lg">
+                                Your intelligent AI voice companion that understands, learns, and adapts to your needs
+                            </p>
+                            
+                            <!-- Feature badges -->
+                            <div class="flex flex-wrap justify-center gap-2 mt-4">
+                                <span class="px-3 py-1 bg-secondary dark:bg-gray-700 rounded-full text-xs font-medium text-primary dark:text-primary-light shadow-sm">
+                                    <i class="fas fa-comment-dots mr-1"></i> Voice Chat
+                                </span>
+                                <span class="px-3 py-1 bg-secondary dark:bg-gray-700 rounded-full text-xs font-medium text-primary dark:text-primary-light shadow-sm">
+                                    <i class="fas fa-language mr-1"></i> Multilingual
+                                </span>
+                                <span class="px-3 py-1 bg-secondary dark:bg-gray-700 rounded-full text-xs font-medium text-primary dark:text-primary-light shadow-sm">
+                                    <i class="fas fa-magic mr-1"></i> AI Powered
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </header>
 
-        <main class="bg-white rounded-2xl shadow-xl overflow-hidden transform transition-all animate-scale-in">
+        <!-- Welcome Message / Onboarding (Initially hidden) -->
+        <div id="onboarding-modal" class="onboarding-modal fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-md mx-4 animate-scale-in border border-gray-100 dark:border-gray-700">
+                <div class="text-center mb-4">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-md mx-auto mb-3">
+                        <i class="fas fa-robot text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-display font-bold text-primary dark:text-primary-light">Welcome to Jasmine!</h3>
+                </div>
+                
+                <p class="text-gray-600 dark:text-gray-300 mb-4">
+                    I'm your AI voice companion, ready to chat, help, and learn with you. Here's how to get started:
+                </p>
+                
+                <div class="space-y-3 mb-6">
+                    <div class="flex items-start">
+                        <div class="bg-secondary dark:bg-gray-700 p-2 rounded-full mr-3">
+                            <i class="fas fa-microphone text-primary dark:text-primary-light"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800 dark:text-gray-200">Speak to me</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Click the microphone button and start talking</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="bg-secondary dark:bg-gray-700 p-2 rounded-full mr-3">
+                            <i class="fas fa-keyboard text-primary dark:text-primary-light"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800 dark:text-gray-200">Type your message</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Use the text input if you prefer typing</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="bg-secondary dark:bg-gray-700 p-2 rounded-full mr-3">
+                            <i class="fas fa-language text-primary dark:text-primary-light"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800 dark:text-gray-200">Multiple languages</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Switch between English and Tagalog</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="start-button" class="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-xl focus:outline-none transition button-hover-effect shadow-lg font-medium">
+                    Let's Start Chatting!
+                </button>
+            </div>
+        </div>
+
+        <main class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden transform transition-all animate-scale-in border border-gray-100 dark:border-gray-700 relative">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-accent to-primary-light"></div>
+            
             <div class="relative">
                 <!-- Chat messages container -->
-                <div id="chat-container" class="chat-container rounded-t-2xl bg-gray-50">
-                    <div class="text-center text-gray-400 py-10 animate-pulse-soft">
-                        <i class="fas fa-comments text-5xl mb-4 text-primary-light opacity-50"></i>
-                        <p class="font-light">Start speaking or type a message below to begin the conversation</p>
+                <div id="chat-container" class="chat-container rounded-t-2xl bg-gray-50 dark:bg-gray-800 relative">
+                    <!-- Decorative elements -->
+                    <div class="absolute top-0 right-0 w-40 h-40 bg-accent-light/5 rounded-full filter blur-xl pointer-events-none decorative-bg"></div>
+                    <div class="absolute bottom-0 left-0 w-40 h-40 bg-primary-light/5 rounded-full filter blur-xl pointer-events-none decorative-bg"></div>
+                    
+                    <!-- Default empty state -->
+                    <div id="empty-state" class="text-center text-gray-400 dark:text-gray-500 py-10 animate-pulse-soft">
+                        <div class="relative mx-auto w-20 h-20 mb-4">
+                            <div class="absolute inset-0 bg-primary-light/20 rounded-full animate-ping opacity-75"></div>
+                            <div class="relative z-10 flex items-center justify-center w-full h-full">
+                                <i class="fas fa-comments text-5xl text-primary-light opacity-50"></i>
+                            </div>
+                        </div>
+                        <p class="font-light mb-4">Start speaking or type a message below to begin the conversation</p>
+                        
+                        <!-- Suggested conversation starters -->
+                        <div class="flex flex-wrap justify-center gap-2 max-w-md mx-auto mt-6">
+                            <button class="empty-state-suggestion px-3 py-1.5 bg-white dark:bg-gray-700 hover:bg-secondary hover:dark:bg-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-300 shadow-sm hover:shadow transition-all flex items-center gap-1 group">
+                                <i class="fas fa-robot text-primary-light group-hover:scale-110 transition-transform"></i>
+                                <span>Introduce yourself</span>
+                            </button>
+                            <button class="empty-state-suggestion px-3 py-1.5 bg-white dark:bg-gray-700 hover:bg-secondary hover:dark:bg-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-300 shadow-sm hover:shadow transition-all flex items-center gap-1 group">
+                                <i class="fas fa-question-circle text-primary-light group-hover:scale-110 transition-transform"></i>
+                                <span>What can you do?</span>
+                            </button>
+                            <button class="empty-state-suggestion px-3 py-1.5 bg-white dark:bg-gray-700 hover:bg-secondary hover:dark:bg-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-300 shadow-sm hover:shadow transition-all flex items-center gap-1 group">
+                                <i class="fas fa-magic text-primary-light group-hover:scale-110 transition-transform"></i>
+                                <span>Tell me a fact</span>
+                            </button>
+                        </div>
                     </div>
-                    <!-- Messages will appear here -->
+                    
+                    <!-- Messages will be dynamically added here -->
+                    <!-- Example message template (hidden by default) -->
+                    <div id="message-templates" class="hidden">
+                        <!-- AI Message Template -->
+                        <div class="ai-message-template flex items-start mb-4 opacity-0 transition-opacity duration-300" aria-label="Jasmine's message">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-md mr-3 flex-shrink-0">
+                                <div class="text-xs font-display font-bold text-white">J</div>
+                            </div>
+                            <div class="message-bubble ai-message bg-white dark:bg-gray-700 py-2 px-4 rounded-lg rounded-tl-none shadow-md max-w-[85%]">
+                                <div class="font-medium text-xs text-primary-light dark:text-primary-light mb-1">Jasmine</div>
+                                <p class="message-content text-gray-700 dark:text-gray-200"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- User Message Template -->
+                        <div class="user-message-template flex items-start justify-end mb-4 opacity-0 transition-opacity duration-300" aria-label="Your message">
+                            <div class="message-bubble user-message bg-secondary dark:bg-gray-600 py-2 px-4 rounded-lg rounded-tr-none shadow-md max-w-[85%]">
+                                <div class="font-medium text-xs text-primary dark:text-primary-light mb-1 text-right">You</div>
+                                <p class="message-content text-gray-700 dark:text-gray-200"></p>
+                            </div>
+                            <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-500 flex items-center justify-center shadow-md ml-3 flex-shrink-0">
+                                <i class="fas fa-user text-xs text-gray-500 dark:text-gray-300"></i>
+                            </div>
+                        </div>
+                        
+                        <!-- Typing Indicator Template -->
+                        <div class="typing-indicator-template flex items-start mb-4 opacity-0 transition-opacity duration-300" aria-label="Jasmine is typing">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-md mr-3 flex-shrink-0">
+                                <div class="text-xs font-display font-bold text-white">J</div>
+                            </div>
+                            <div class="message-bubble ai-message bg-white dark:bg-gray-700 py-3 px-4 rounded-lg rounded-tl-none shadow-md">
+                                <div class="typing-indicator">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Message date separator (shown when date changes) -->
+                    <div class="date-separator hidden justify-center my-4">
+                        <div class="px-3 py-1 bg-secondary/50 dark:bg-gray-700/50 rounded-full text-xs text-gray-500 dark:text-gray-400 shadow-sm">
+                            <span class="date-text"></span>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Wave animation at the bottom of chat container -->
@@ -333,30 +766,36 @@
             </div>
 
             <!-- Controls -->
-            <div class="controls p-6 bg-white border-t border-gray-100">
-                <div class="flex items-center mb-4">
-                    <button id="toggle-mic" class="p-4 bg-primary hover:bg-primary-dark text-white rounded-full mr-4 focus:outline-none transition button-hover-effect shadow-lg transform hover:scale-105 mic-active">
-                        <i class="fas fa-microphone"></i>
+            <div class="controls p-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 relative">
+                <div class="absolute -top-12 -left-10 w-24 h-24 bg-gradient-to-br from-primary-light/10 to-accent-light/10 rounded-full filter blur-xl decorative-bg"></div>
+                <div class="absolute -bottom-12 -right-10 w-24 h-24 bg-gradient-to-br from-accent-light/10 to-primary-light/10 rounded-full filter blur-xl decorative-bg"></div>
+                
+                <div class="flex items-center mb-4 relative">
+                    <button id="toggle-mic" class="p-4 bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-white rounded-full mr-4 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-300 button-hover-effect shadow-lg transform hover:-translate-y-1 hover:scale-105 relative z-10 group">
+                        <i class="fas fa-microphone transform transition-transform group-hover:scale-110"></i>
+                        <span class="absolute inset-0 rounded-full bg-white/10 scale-0 group-hover:scale-100 transition-transform duration-300"></span>
                     </button>
+                    
                     <div class="relative flex-1">
-                        <input type="text" id="message-input" class="w-full px-5 py-3 border rounded-full bg-secondary border-none shadow-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all" placeholder="Type your message... (I-type ang iyong mensahe...)">
-                        <button id="send-button" class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-primary hover:bg-primary-dark text-white rounded-full focus:outline-none transition button-hover-effect shadow-md">
-                            <i class="fas fa-paper-plane"></i>
+                        <input type="text" id="message-input" class="w-full px-5 py-3 border rounded-full bg-secondary/50 dark:bg-gray-700/50 border-none shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:shadow-lg transition-all dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500" placeholder="Type your message... (I-type ang iyong mensahe...)">
+                        <button id="send-button" class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-white rounded-full focus:outline-none focus:ring-2 focus:ring-primary-light transition-all duration-300 button-hover-effect shadow-md group">
+                            <i class="fas fa-paper-plane transform transition-transform group-hover:scale-110 group-hover:rotate-12"></i>
                         </button>
                     </div>
                 </div>
                 
-                <div class="flex justify-between items-center">
-                    <div class="text-sm text-gray-500 font-medium" id="status-indicator">
+                <div class="flex flex-wrap justify-between items-center gap-3">
+                    <div class="text-sm text-gray-500 dark:text-gray-400 font-medium glass-effect px-3 py-1 rounded-full shadow-sm" id="status-indicator">
                         <span class="inline-flex items-center">
                             <span class="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
                             Ready to chat
                         </span>
                     </div>
-                    <div class="flex items-center space-x-4">
-                        <div class="flex items-center p-2 bg-secondary rounded-full shadow-sm">
-                            <label for="voice-select" class="mr-2 text-sm text-gray-600 font-medium">Voice:</label>
-                            <select id="voice-select" class="bg-white rounded-full text-sm py-1 px-3 border-none shadow-sm focus:outline-none focus:ring-1 focus:ring-primary">
+                    
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="flex items-center p-2 bg-secondary dark:bg-gray-700 rounded-full shadow-sm transition-all hover:shadow-md hover:bg-secondary-dark dark:hover:bg-gray-600">
+                            <label for="voice-select" class="mr-2 text-sm text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">Voice:</label>
+                            <select id="voice-select" class="bg-white dark:bg-gray-600 rounded-full text-sm py-1 px-3 border-none shadow-sm focus:outline-none focus:ring-1 focus:ring-primary dark:text-gray-200 cursor-pointer transition-colors">
                                 <option value="US English Female">US English Female</option>
                                 <option value="US English Male">US English Male</option>
                                 <option value="UK English Female">UK English Female</option>
@@ -367,20 +806,49 @@
                                 <option value="German Female">German Female</option>
                             </select>
                         </div>
-                        <button id="toggle-language" class="p-2 rounded-full bg-secondary hover:bg-secondary-dark text-primary transition transform hover:scale-105 shadow-sm" title="Toggle language">
+                        
+                        <button id="toggle-language" class="p-2 rounded-full bg-secondary dark:bg-gray-700 hover:bg-secondary-dark hover:dark:bg-gray-600 text-primary dark:text-primary-light transition-all transform hover:scale-105 hover:-translate-y-1 shadow-sm hover:shadow-md" title="Toggle language">
                             <span class="text-sm font-medium">EN/TL</span>
                         </button>
-                        <button id="toggle-theme" class="p-2 rounded-full hover:bg-secondary transition transform hover:scale-105 shadow-sm">
-                            <i class="fas fa-moon text-gray-500"></i>
-                            <i class="fas fa-sun hidden text-yellow-500"></i>
+                        
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input id="theme-toggle-checkbox" type="checkbox" value="" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-light rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                            <button id="toggle-theme" class="ml-1 text-sm font-medium text-gray-600 dark:text-gray-300 transition-colors">
+                                <i class="fas fa-moon text-gray-500 dark:hidden"></i>
+                                <i class="fas fa-sun hidden text-yellow-500 dark:inline"></i>
                         </button>
+                        </label>
                     </div>
+                </div>
+                
+                <!-- Quick Action Buttons -->
+                <div class="quick-actions mt-4 flex flex-wrap gap-2 overflow-x-auto pb-2">
+                    <button class="suggestion-btn px-3 py-1.5 bg-secondary/80 hover:bg-secondary dark:bg-gray-700/80 dark:hover:bg-gray-700 rounded-full text-xs text-gray-700 dark:text-gray-300 shadow-sm hover:shadow transition-all whitespace-nowrap flex items-center gap-1">
+                        <i class="fas fa-info-circle text-primary-light"></i> What can you do?
+                    </button>
+                    <button class="suggestion-btn px-3 py-1.5 bg-secondary/80 hover:bg-secondary dark:bg-gray-700/80 dark:hover:bg-gray-700 rounded-full text-xs text-gray-700 dark:text-gray-300 shadow-sm hover:shadow transition-all whitespace-nowrap flex items-center gap-1">
+                        <i class="fas fa-comment-dots text-primary-light"></i> Tell me a story
+                    </button>
+                    <button class="suggestion-btn px-3 py-1.5 bg-secondary/80 hover:bg-secondary dark:bg-gray-700/80 dark:hover:bg-gray-700 rounded-full text-xs text-gray-700 dark:text-gray-300 shadow-sm hover:shadow transition-all whitespace-nowrap flex items-center gap-1">
+                        <i class="fas fa-question-circle text-primary-light"></i> How to use voice chat?
+                    </button>
+                    <button class="suggestion-btn px-3 py-1.5 bg-secondary/80 hover:bg-secondary dark:bg-gray-700/80 dark:hover:bg-gray-700 rounded-full text-xs text-gray-700 dark:text-gray-300 shadow-sm hover:shadow transition-all whitespace-nowrap flex items-center gap-1">
+                        <i class="fas fa-lightbulb text-primary-light"></i> I need advice
+                    </button>
                 </div>
             </div>
         </main>
         
-        <footer class="mt-4 text-center text-xs text-gray-400 font-light">
-            <p>Powered by Jasper Technologies © 2023</p>
+        <footer class="mt-6 text-center">
+            <div class="glass-effect rounded-full py-2 px-4 inline-block shadow-sm hover:shadow transition-all">
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-light">
+                    Powered by Jasper Technologies © 2023 | 
+                    <a href="#" class="text-primary hover:text-primary-dark dark:text-primary-light hover:underline transition-all">About</a> | 
+                    <a href="#" class="text-primary hover:text-primary-dark dark:text-primary-light hover:underline transition-all">Privacy</a> | 
+                    <a href="#" class="text-primary hover:text-primary-dark dark:text-primary-light hover:underline transition-all">Help</a>
+                </p>
+            </div>
         </footer>
     </div>
 
@@ -390,5 +858,187 @@
     <script src="js/tts.js"></script>
     <script src="js/gemini.js"></script>
     <script src="js/app.js"></script>
+    
+    <!-- Additional JavaScript for new UI features -->
+    <script>
+        // Mobile Navigation Toggle
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const mobileNav = document.getElementById('mobile-nav');
+        
+        mobileMenuToggle.addEventListener('click', () => {
+            mobileNav.classList.toggle('open');
+        });
+        
+        // Theme Toggle
+        const themeToggleBtn = document.getElementById('toggle-theme');
+        const themeToggleCheckbox = document.getElementById('theme-toggle-checkbox');
+        
+        // Check if user has a theme preference
+        if (localStorage.getItem('theme') === 'dark' || 
+            (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            themeToggleCheckbox.checked = true;
+        }
+        
+        themeToggleBtn.addEventListener('click', () => {
+            themeToggleCheckbox.checked = !themeToggleCheckbox.checked;
+            toggleTheme();
+        });
+        
+        themeToggleCheckbox.addEventListener('change', toggleTheme);
+        
+        function toggleTheme() {
+            if (themeToggleCheckbox.checked) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        
+        // Optimize for mobile - hide gradient background on smaller screens
+        function optimizeForMobile() {
+            const backgroundGradient = document.getElementById('background-gradient');
+            if (window.innerWidth < 768) {
+                backgroundGradient.style.opacity = '0.3';
+            } else {
+                backgroundGradient.style.opacity = '1';
+            }
+        }
+        
+        // Run on load and on resize
+        window.addEventListener('load', optimizeForMobile);
+        window.addEventListener('resize', optimizeForMobile);
+        
+        // Onboarding Modal
+        const onboardingModal = document.getElementById('onboarding-modal');
+        const startButton = document.getElementById('start-button');
+        
+        // Check if it's the user's first visit
+        if (!localStorage.getItem('jasmine_onboarding_complete')) {
+            setTimeout(() => {
+                onboardingModal.classList.add('show');
+            }, 1000);
+        }
+        
+        startButton.addEventListener('click', () => {
+            onboardingModal.classList.remove('show');
+            localStorage.setItem('jasmine_onboarding_complete', 'true');
+        });
+        
+        // Quick Action Buttons
+        const suggestionBtns = document.querySelectorAll('.suggestion-btn');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        
+        suggestionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const text = btn.textContent.trim();
+                messageInput.value = text;
+                messageInput.focus();
+                // Optional: Auto-send the message
+                // sendButton.click();
+            });
+        });
+        
+        // Empty state suggestions
+        const emptyStateSuggestions = document.querySelectorAll('.empty-state-suggestion');
+        
+        emptyStateSuggestions.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const text = btn.querySelector('span').textContent.trim();
+                messageInput.value = text;
+                messageInput.focus();
+                // Auto-send the empty state suggestions
+                sendButton.click();
+            });
+        });
+        
+        // Message Templates
+        // These functions will be used by the app.js file to create messages
+        
+        // Function to format date for separator
+        function formatDateForSeparator(date) {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            // Check if it's today
+            if (date.toDateString() === today.toDateString()) {
+                return 'Today';
+            }
+            // Check if it's yesterday
+            else if (date.toDateString() === yesterday.toDateString()) {
+                return 'Yesterday';
+            }
+            // Otherwise return the date
+            else {
+                return date.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+            }
+        }
+        
+        // Function to check if we need a date separator
+        function needsDateSeparator(date, lastDate) {
+            if (!lastDate) return true;
+            
+            return date.toDateString() !== lastDate.toDateString();
+        }
+        
+        // This will store the last message date to check if we need a separator
+        let lastMessageDate = null;
+        
+        // Function to add a date separator
+        function addDateSeparator(date) {
+            const separator = document.querySelector('.date-separator').cloneNode(true);
+            separator.classList.remove('hidden');
+            separator.style.display = 'flex';
+            
+            separator.querySelector('.date-text').textContent = formatDateForSeparator(date);
+            
+            document.getElementById('chat-container').appendChild(separator);
+            
+            // Update lastMessageDate
+            lastMessageDate = date;
+        }
+        
+        // Accessibility focus management
+        function manageFocus(messageElement) {
+            // Set focus to the new message for screen readers
+            // Using setTimeout to ensure the element is properly rendered
+            setTimeout(() => {
+                messageElement.setAttribute('tabindex', '-1');
+                messageElement.focus();
+            }, 100);
+        }
+        
+        // Auto-scroll to bottom of chat
+        function scrollToBottom() {
+            const chatContainer = document.getElementById('chat-container');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Function to hide empty state when messages start appearing
+        function hideEmptyState() {
+            const emptyState = document.getElementById('empty-state');
+            if (emptyState) {
+                emptyState.classList.add('hidden');
+            }
+        }
+        
+        // Expose these functions to the global scope for app.js to use
+        window.uiHelpers = {
+            addDateSeparator,
+            needsDateSeparator,
+            lastMessageDate,
+            manageFocus,
+            scrollToBottom,
+            hideEmptyState
+        };
+    </script>
 </body>
 </html> 
