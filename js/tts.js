@@ -35,7 +35,10 @@ class TextToSpeechManager {
         text = text.replace(emojiRegex, '');
         
         // Remove asterisks and other markdown formatting
-        text = text.replace(/\*+([^*]+)\*+/g, '$1'); // Remove asterisks around text
+        text = text.replace(/\*\*([^*]+)\*\*/g, '$1'); // Bold
+        text = text.replace(/\*([^*]+)\*/g, '$1');     // Italic
+        text = text.replace(/\_\_([^_]+)\_\_/g, '$1'); // Underline
+        text = text.replace(/\_([^_]+)\_/g, '$1');     // Italic with underscore
         
         // Remove other special characters that don't read well
         text = text.replace(/[💋💕💔😘🔥😍💖]/g, '');
@@ -49,23 +52,27 @@ class TextToSpeechManager {
     }
     
     /**
-     * Converts text to speech and plays the resulting audio
-     * @param {string} text - The text to convert to speech
-     * @param {string} voice - The voice to use (optional)
-     * @returns {Promise<void>}
+     * Speaks the given text using selected voice
+     * @param {string} text - Text to speak
+     * @param {string} voice - Voice to use
+     * @param {boolean} skipWelcomeCheck - Force speaking regardless of welcome message status
      */
-    async speak(text, voice) {
-        if (!text.trim()) return;
-        
-        // Clean the text for better speech output
+    speak(text, voice, skipWelcomeCheck = false) {
+        // Clean text before speaking
         const cleanedText = this.cleanTextForSpeech(text);
         
-        // Add to queue if already playing
-        if (this.isPlaying) {
-            // Skip previous queued items - only keep the latest
-            this.queue = [];
-            this.queue.push({ text: cleanedText, voice });
+        // Check if this is a welcome message - if so, don't speak it
+        // isWelcomeMessage is a global variable set in app.js
+        if (!skipWelcomeCheck && window.isWelcomeMessage === true) {
+            console.log('Skipping TTS for welcome message');
+            // Reset the flag for future messages
+            window.isWelcomeMessage = false;
             return;
+        }
+        
+        // If currently speaking, stop the current speech
+        if (this.isPlaying) {
+            this.stopSpeaking();
         }
         
         if (!this.isResponsiveVoiceAvailable) {

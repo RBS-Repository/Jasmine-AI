@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     let saveInProgress = false;
     let saveDebounceTimer = null;
     
+    // Make isWelcomeMessage accessible globally for TTS manager
+    window.isWelcomeMessage = true;
+    
     // Create saving indicator
     const savingIndicator = document.createElement('div');
     savingIndicator.className = 'fixed bottom-4 left-4 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 py-1 px-3 rounded-full text-xs shadow-md hidden flex items-center';
@@ -111,7 +114,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // Add initial message to chat without speaking it immediately
-    addAIMessage(CONFIG.APP.welcomeMessage);
+    addAIMessage(CONFIG.APP.welcomeMessage, true);
     
     // Check for microphone permission
     checkMicrophonePermission();
@@ -153,6 +156,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!audioInitialized) {
             initializeAudio();
         }
+        
+        // Stop any current speech when user sends a message
+        if (ttsManager.isPlaying) {
+            ttsManager.stopSpeaking();
+        }
+        
         sendMessage();
     });
     
@@ -162,6 +171,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!audioInitialized) {
                 initializeAudio();
             }
+            
+            // Stop any current speech when user sends a message
+            if (ttsManager.isPlaying) {
+                ttsManager.stopSpeaking();
+            }
+            
             sendMessage();
         }
     });
@@ -548,8 +563,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     /**
      * Adds an AI message to the chat
      * @param {string} message - The AI's message
+     * @param {boolean} isWelcome - Whether this is the welcome message
      */
-    function addAIMessage(message) {
+    function addAIMessage(message, isWelcome = false) {
         const messageElement = document.createElement('div');
         messageElement.className = 'flex mb-4';
         
@@ -584,6 +600,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Save to localStorage
         saveChatMessage('ai', message, timestamp);
+        
+        // Set global flag for welcome message
+        window.isWelcomeMessage = isWelcome;
     }
     
     /**
@@ -1021,9 +1040,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
         chatContainer.appendChild(welcomeElement);
         
-        // Add the actual welcome message
+        // Add the actual welcome message, marked as a welcome message so it doesn't get spoken
         setTimeout(() => {
-            addAIMessage(CONFIG.APP.welcomeMessage);
+            addAIMessage(CONFIG.APP.welcomeMessage, true);
         }, 800);
     }
     
@@ -1180,9 +1199,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const chatHistory = localStorage.getItem('chatHistory');
         if (!chatHistory) return;
         
-        // Clear the chat container
-        chatContainer.innerHTML = '';
-        
         try {
             // Parse history and add messages to UI
             const historyData = JSON.parse(chatHistory);
@@ -1266,6 +1282,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     // Make sure it's in the Gemini message history
                     geminiManager.addAIResponse(msg.content);
+                    
+                    // Set as welcome message if it matches the welcome message
+                    if (msg.content === CONFIG.APP.welcomeMessage) {
+                        window.isWelcomeMessage = true;
+                    }
                 } else if (msg.role === 'system') {
                     // Recreate system message
                     const messageElement = document.createElement('div');

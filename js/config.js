@@ -2,7 +2,7 @@
 const CONFIG = {
     // Play.HT API credentials
     PLAYHT: {
-        userId: "2L5MieT50OVFt6Ot2sr1GLXt5Df2", // Replace with your Play.HT User ID
+        userId: "2L5MieT50OVFt6Ot2sr1GLXt5Df2",
         apiKey: "ak-287879502030498ebafdbeb4ffb28f19", // Replace with your Play.HT API Key
         voiceEngine: "PlayDialog",     // PlayHT's recommended voice engine
         defaultVoice: "s3://voice-cloning-zero-shot/d9ff78ba-d016-47f6-b0ef-dd630f59414e/female-cs/manifest.json"
